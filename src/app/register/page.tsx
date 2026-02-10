@@ -11,7 +11,7 @@ type Role = {
 
 export default function RegisterPage() {
   const router = useRouter();
-
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -43,6 +43,7 @@ export default function RegisterPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        name,
         email,
         password,
         role_id: roleId,
@@ -65,6 +66,15 @@ export default function RegisterPage() {
         className="w-full max-w-sm bg-white p-8 rounded shadow flex flex-col gap-4"
       >
         <h1 className="text-3xl font-bold text-center">Register</h1>
+
+         <input
+          
+          placeholder="Full Name"
+          className="border px-4 py-2 rounded"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
 
         <input
           type="email"

@@ -16,12 +16,12 @@ export async function POST(req: Request) {
     }
 
     
-    if (role_id === 3) {
+   /* if (role_id === 3) {
       return NextResponse.json(
         { error: "Admin role not allowed" },
         { status: 403 }
       );
-    }
+    }*/
 
     const hashedPassword = await bcrypt.hash(password, 10);
 

@@ -37,7 +37,7 @@ export default function LoginPage() {
           router.push("/dashboard/employee");
           break;
         case "reader":
-          router.push("dashboard/reader");
+          router.push("/dashboard/reader");
           break;
         case "admin":
           router.push("/dashboard/admin");

@@ -1,3 +1,4 @@
+import AdminDashboard from "@/app/components/AdminDashboard"
 export default function Admin() {
-  return <h1>Admin Dashboard</h1>;
+  return <AdminDashboard />;
 }

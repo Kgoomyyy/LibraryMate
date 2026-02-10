@@ -1,24 +1,25 @@
 import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { supabase } from "@/app/lib/supabase";
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const {  email, role,password } = body;
+  const { name, email, password, role_id } = await req.json();
 
-  if (!password|| !email || !role) {
+  if (!name || !email || !password || !role_id) {
     return NextResponse.json(
       { error: "Missing fields" },
       { status: 400 }
     );
   }
 
+  const hashedPassword = await bcrypt.hash(password, 10);
+
   const { error } = await supabase.from("users").insert([
     {
-      
+      name,
       email,
-      role,
-      password
-      
+      password: hashedPassword,
+      role_id,
     },
   ]);
 

@@ -104,28 +104,51 @@ function ManageUsers() {
 
 function AddUserButton({ fetchUsers }: { fetchUsers: () => void }) {
   const [showForm, setShowForm] = useState(false);
-  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"user" | "admin">("user");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleAddUser = async () => {
+    setError("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
-    const res = await fetch("/api/admin/add-user", {
+
+    const role_id = role === "admin" ? 3 : 1; // ✅ map role correctly
+
+    const res = await fetch("/api/admin/add_users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, role,password }),
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        role_id,
+      }),
     });
+
     const data = await res.json();
+
     if (res.ok) {
       fetchUsers();
       setShowForm(false);
-      setPassword("");
+      setName("");
       setEmail("");
+      setPassword("");
+      setConfirmPassword("");
       setRole("user");
     } else {
-      console.error(data.error);
+      setError(data.error || "Failed to add user");
     }
+
     setLoading(false);
   };
 
@@ -139,32 +162,55 @@ function AddUserButton({ fetchUsers }: { fetchUsers: () => void }) {
       </button>
 
       {showForm && (
-        <div className="mt-4 p-4 border rounded bg-gray-50">
+        <div className="mt-4 p-6 border rounded bg-gray-50 space-y-3 max-w-md">
           <input
             type="text"
-            placeholder="Name"
-            className="border p-2 rounded w-full mb-2"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Full Name"
+            className="border p-2 rounded w-full"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
+
           <input
             type="email"
             placeholder="Email"
-            className="border p-2 rounded w-full mb-2"
+            className="border p-2 rounded w-full"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="password"
+              placeholder="Password"
+              className="border p-2 rounded"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              className="border p-2 rounded"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          </div>
+
           <select
-            className="border p-2 rounded w-full mb-2"
+            className="border p-2 rounded w-full"
             value={role}
             onChange={(e) => setRole(e.target.value as "user" | "admin")}
           >
             <option value="user">User</option>
             <option value="admin">Admin</option>
           </select>
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+
           <button
             onClick={handleAddUser}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
             disabled={loading}
           >
             {loading ? "Adding..." : "Add User"}
@@ -174,6 +220,7 @@ function AddUserButton({ fetchUsers }: { fetchUsers: () => void }) {
     </>
   );
 }
+
 
 function ViewReports() {
   return (

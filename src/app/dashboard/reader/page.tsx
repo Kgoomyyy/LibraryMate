@@ -1,3 +1,5 @@
+import ReaderDashboard from "@/app/components/ReaderDashboard";
+
 export default function Reader() {
-  return <h1>Reader Dashboard</h1>;
+  return <ReaderDashboard />;
 }

@@ -11,7 +11,7 @@ export default function Navbar(){
 
         {/* Links */}
         <ul className="flex gap-6 text-white font-meduim">
-          <li className="cursor-pointer hover:text-zinc-600">Home</li>
+          <li className="cursor-pointer hover:text-zinc-600"><Link href="/">Home</Link></li>
           <li className="cursor-pointer hover:text-zinc-600">About</li>
           <li className="cursor-pointer hover:text-zinc-600">Contact</li>
           <li className="cursor-pointer hover:text-zinc-600"><Link href="/login">Login</Link></li>

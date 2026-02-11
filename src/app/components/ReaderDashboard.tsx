@@ -66,7 +66,7 @@ function AvailableBooks() {
     const res = await fetch("/api/borrowed", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ book_id: bookId }),
+      body: JSON.stringify({ user_id, book_id: bookId }),
     });
     const data = await res.json();
     if (data.error) return alert(data.error);
@@ -115,9 +115,9 @@ function MyBooks() {
   useEffect(() => {
     if (user_id) fetchMyBooks();
   }, [user_id]);
-
+  
   const fetchMyBooks = async () => {
-    const res = await fetch("app/api/borrowed");
+    const res = await fetch("/api/borrowed");
     const data = await res.json();
     setBooks(data);
   };

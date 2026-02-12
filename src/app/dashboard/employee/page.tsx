@@ -1,3 +1,5 @@
+import EmployeeDashboard from "@/app/components/EmployeeDashboard";
+
 export default function Employee() {
-  return <h1>Employee Dashboard</h1>;
+  return <EmployeeDashboard />;
 }

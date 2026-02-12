@@ -1,26 +1,55 @@
-import { supabase } from "@/app/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
-
-export async function GET() {
-  const { data } = await supabase.from("books").select("*");
-  return NextResponse.json(data);
-}
+import { supabase } from "@/app/lib/supabase";
 
 export async function POST(req: NextRequest) {
-  const formData = await req.formData();
-  const title = formData.get("title") as string;
-  const author = formData.get("author") as string;
-  const imageFile = formData.get("image") as File;
+  try {
+    const formData = await req.formData();
 
-  const fileName = `${Date.now()}-${imageFile.name}`;
-  await supabase.storage.from("book-images").upload(fileName, imageFile.stream());
-  const { data } = supabase.storage.from("book-images").getPublicUrl(fileName);
+    const title = formData.get("title") as string;
+    const author = formData.get("author") as string;
+    const quantity = Number(formData.get("quantity"));
+    const file = formData.get("file") as File;
 
-  await supabase.from("books").insert({
-    title,
-    author,
-    image_url: data.publicUrl
-  });
+    if (!title || !author || !file) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
 
-  return NextResponse.json({ success: true });
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("books")
+      .upload(fileName, file);
+
+    if (uploadError) {
+      return NextResponse.json({ error: uploadError.message });
+    }
+
+    const { error } = await supabase.from("books").insert({
+      title,
+      author,
+      quantity,
+      status: quantity > 0 ? "available" : "unavailable",
+      file_path: uploadData.path,
+    });
+
+    if (error) {
+      return NextResponse.json({ error: error.message });
+    }
+
+    return NextResponse.json({ message: "Book added successfully" });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message });
+  }
+}
+
+/* GET ALL BOOKS */
+export async function GET() {
+  const { data, error } = await supabase.from("books").select("*");
+
+  if (error) {
+    return NextResponse.json({ error: error.message });
+  }
+
+  return NextResponse.json(data);
 }

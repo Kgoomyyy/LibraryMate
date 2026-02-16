@@ -3,7 +3,7 @@ import GitHub from "next-auth/providers/github"
 import Google from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { supabase } from "@/app/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
  
 export const { auth, handlers, signIn, signOut } = NextAuth({
@@ -19,7 +19,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        // 1️⃣ Fetch the user by email
+        // Fetch the user by email
         const { data: user, error: userError } = await supabase
           .from("users")
           .select("id, email, password, role_id")
@@ -28,7 +28,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         if (userError || !user) return null;
 
-        // 2️⃣ Verify password
+        // Verify password
          const isValid = await bcrypt.compare(
          credentials.password as string,
         user.password as string
@@ -44,7 +44,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         if (roleError || !roleData) return null;
 
-        // 4️⃣ Return user object to NextAuth
+        // Return user object to NextAuth
         return {
           id: user.id,
           email: user.email,

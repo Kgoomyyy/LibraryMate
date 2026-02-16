@@ -1,4 +1,4 @@
-import ReaderDashboard from "@/app/components/ReaderDashboard";
+import ReaderDashboard from "@/components/ReaderDashboard";
 
 export default function Reader() {
   return <ReaderDashboard />;

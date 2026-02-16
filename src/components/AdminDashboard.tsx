@@ -87,7 +87,7 @@ function ManageUsers() {
           throw new Error(data.error);
         }
 
-        fetchUsers(); // refresh table
+        fetchUsers();
       } catch (err) {
         console.error("DELETE FAILED:", err);
       }

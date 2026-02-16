@@ -1,4 +1,4 @@
-import { supabase } from "@/app/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("borrowed_books")
-    .select("id,book_id, borrowed_at, books(id, title, author, file_path)")
+    .select("id,book_id,due_date, borrowed_at, books(id, title, author, file_path)")
     .eq("user_id", user_id)
     .eq("returned", false);
 

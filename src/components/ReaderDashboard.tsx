@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import SignOutButton from "./Logout";
 import { useSession } from "next-auth/react";
 import {auth} from "@/auth";
-import BookReader from "@/app/components/BookReader";
+import BookReader from "@/components/BookReader";
 
 
 export default function ReaderDashboard() {
@@ -86,21 +86,21 @@ function AvailableBooks() {
         )}
         {books.map((book) => (
           <div key={book.id} className="bg-white p-4 rounded shadow">
-            <img
-              src={book.file_path}
-              className="w-full h-48 object-cover rounded"
-              alt={book.title}
-            />
+            <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded">
+              <p className="text-sm text-gray-600">{book.file_path?.split("/").pop()}</p>
+            </div>
             <h3 className="font-bold mt-2">{book.title}</h3>
             <p>{book.author}</p>
             <p>Available: {book.quantity}</p>
-            <button
-              onClick={() => handleBorrow(book.id)}
-              className="bg-blue-600 text-white px-3 py-1 mt-2 rounded"
-              disabled={book.quantity <= 0}
-            >
-              Borrow
-            </button>
+            <div className="mt-2">
+              <button
+                onClick={() => handleBorrow(book.id)}
+                className="bg-blue-600 text-white px-3 py-1 rounded"
+                disabled={book.quantity <= 0}
+              >
+                Borrow
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -112,7 +112,9 @@ function AvailableBooks() {
 /* ---------- MyBooks Section ---------- */
 function MyBooks() {
   const [books, setBooks] = useState<any[]>([]);
-  const [readingBookUrl, setReadingBookUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [loadingPreview, setLoadingPreview] = useState(false);
   const { data: session } = useSession();
   const user_id = session?.user?.id;
 
@@ -129,6 +131,25 @@ function MyBooks() {
     } catch (err) {
       console.error(err);
       setBooks([]);
+    }
+  };
+
+  const handlePreview = async (book: any) => {
+    if (!book?.file_path) return;
+    setLoadingPreview(true);
+    try {
+      const res = await fetch(`/api/storage-url?path=${encodeURIComponent(book.file_path)}`);
+      const data = await res.json();
+      if (data?.url) {
+        setPreviewUrl(data.url);
+        setShowPreview(true);
+      } else {
+        alert(data?.error || "Could not load preview");
+      }
+    } catch (err) {
+      alert("Failed to fetch preview");
+    } finally {
+      setLoadingPreview(false);
     }
   };
 
@@ -190,36 +211,48 @@ function MyBooks() {
                   {overdue && "(Overdue)"}
                 </p>
 
-             {/* READ BUTTON */}
-              {item.books?.file_path && (
-                <button
-                  onClick={() =>
-                    setReadingBookUrl(
-                      item.books.file_path.startsWith("/")
-                        ? item.books.file_path
-                        : `/pdfs/${item.books.file_path}`
-                    )
-                  }
-                  className="mt-2 px-3 py-1 bg-green-600 text-white rounded mr-2"
-                >
-                  Read
-                </button>
-              )}
+              <div className="mt-2 flex gap-2">
+                  {/* PREVIEW BUTTON */}
+                  <button
+                    onClick={() => handlePreview(item.books)}
+                    className="px-3 py-1 bg-black text-white rounded"
+                  >
+                    {loadingPreview ? "Loading..." : "Preview"}
+                  </button>
 
-                {/* RETURN BUTTON */}
-                <button
-                  onClick={() => handleReturn(item.book_id)}
-                  className="mt-2 px-3 py-1 bg-red-600 text-white rounded"
-                >
-                  Return
-                </button>
-              </div>
+                  {/* RETURN BUTTON */}
+                  <button
+                    onClick={() => handleReturn(item.book_id)}
+                    className="px-3 py-1 bg-red-600 text-white rounded"
+                  >
+                    Return
+                  </button>
+                </div>
+                </div>
+            
             );
           })
         )}
       </div>
 
-    
+      {showPreview && previewUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
+          <div className="bg-white w-full max-w-4xl h-[80vh] rounded overflow-auto p-4 relative">
+            <button
+              onClick={() => {
+                setShowPreview(false);
+                setPreviewUrl(null);
+              }}
+              className="absolute right-4 top-4 bg-red-500 text-white px-3 py-1 rounded"
+            >
+              Close
+            </button>
+            <div className="h-full">
+              <BookReader file={previewUrl} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

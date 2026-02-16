@@ -49,17 +49,47 @@ export default function ReaderDashboard() {
 /* ---------- AvailableBooks Section ---------- */
 function AvailableBooks() {
   const [books, setBooks] = useState<any[]>([]);
+  const [borrowedBooks, setBorrowedBooks] = useState<any[]>([]);
   const { data: session } = useSession();
   const user_id = session?.user?.id;
 
   useEffect(() => {
-    if (user_id) fetchBooks();
+    if (user_id) {
+      fetchBooks();
+      fetchUserBorrowedBooks();
+    }
   }, [user_id]);
 
   const fetchBooks = async () => {
     const res = await fetch("/api/books?available=true");
     const data = await res.json();
     setBooks(data);
+  };
+
+  const fetchUserBorrowedBooks = async () => {
+    try {
+      const res = await fetch("/api/borrowed");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setBorrowedBooks(data);
+      }
+    } catch (err) {
+      console.error("Error fetching borrowed books:", err);
+    }
+  };
+
+  const getBorrowedBook = (bookId: string) => {
+    return borrowedBooks.find((item: any) => item.book_id === bookId);
+  };
+
+  const isBookOverdue = (dueDate: string): boolean => {
+    return new Date() > new Date(dueDate);
+  };
+
+  const isOverdueAndBorrowed = (bookId: string): boolean => {
+    const borrowedBook = getBorrowedBook(bookId);
+    if (!borrowedBook) return false;
+    return isBookOverdue(borrowedBook.due_date);
   };
 
   const handleBorrow = async (bookId: string) => {
@@ -73,8 +103,13 @@ function AvailableBooks() {
     const data = await res.json();
     if (data.error) return alert(data.error);
 
-    fetchBooks(); // update quantity after borrow
+    fetchUserBorrowedBooks(); // update borrowed books list
     alert("Book borrowed!");
+  };
+
+  const handleExtend = (bookId: string) => {
+    alert("Extend feature coming soon! Cost: R20 for 2 more weeks");
+    // will implement extend logic later
   };
 
   return (
@@ -86,20 +121,36 @@ function AvailableBooks() {
         )}
         {books.map((book) => (
           <div key={book.id} className="bg-white p-4 rounded shadow">
+            
             <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded">
-              <p className="text-sm text-gray-600">{book.file_path?.split("/").pop()}</p>
+              <div className="text-center">
+                <div className="text-5xl">📄</div>
+                <p className="text-xs text-gray-600 mt-2">
+                  {book.file_path?.split("/").pop()}
+                </p>
+              </div>
             </div>
             <h3 className="font-bold mt-2">{book.title}</h3>
             <p>{book.author}</p>
-            <p>Available: {book.quantity}</p>
+            
             <div className="mt-2">
-              <button
-                onClick={() => handleBorrow(book.id)}
-                className="bg-blue-600 text-white px-3 py-1 rounded"
-                disabled={book.quantity <= 0}
-              >
-                Borrow
-              </button>
+              {isOverdueAndBorrowed(book.id) ? (
+                <button
+                  onClick={() => handleExtend(book.id)}
+                  className="bg-green-600 text-white px-3 py-1 rounded"
+                  title="Extend reading period for R20 (2 weeks)"
+                >
+                  Extend (+R20)
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleBorrow(book.id)}
+                  className="bg-blue-600 text-white px-3 py-1 rounded disabled:bg-gray-400"
+                  disabled={book.quantity <= 0}
+                >
+                  Rent Book
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -153,34 +204,15 @@ function MyBooks() {
     }
   };
 
-
-
-  // Handle returning a book
-  const handleReturn = async (bookId: string) => {
-    if (!user_id) return alert("You must be logged in to return a book");
-
-    try {
-      const res = await fetch("/api/return-book", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ book_id: bookId }),
-      });
-
-      const data = await res.json();
-      if (data.error) return alert(data.error);
-
-      let message = "Book returned successfully!";
-      if (data.late_fee && data.late_fee > 0) {
-        message += ` Late fee: ${data.late_fee} ZAR`;
-      }
-
-      alert(message);
-      fetchMyBooks(); // refresh list after return
-    } catch (err) {
-      console.error(err);
-      alert("Error returning book");
+  // New: preview handler that respects overdue flag
+  const handlePreviewWithCheck = async (book: any, isOverdueFlag: boolean) => {
+    if (isOverdueFlag) {
+      return alert("This book is overdue — preview is disabled.");
     }
+    return handlePreview(book);
   };
+
+
 
   const isOverdue = (dueDate: string) => {
     return new Date() > new Date(dueDate);
@@ -197,38 +229,51 @@ function MyBooks() {
           </p>
         ) : (
           books.map((item: any) => {
+            
+            
             const overdue = isOverdue(item.due_date);
-
+            
             return (
-              <div key={item.id} className="bg-white p-4 rounded shadow">
-                <h3 className="font-bold mt-2">{item.books?.title}</h3>
-                <p>{item.books?.author}</p>
-                <p>
-                  Borrowed at: {new Date(item.borrowed_at).toLocaleDateString()}
+              
+          <div key={item.id} className="bg-white p-4 rounded shadow">
+            {/* PDF Preview Box */}
+            <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded">
+              <div className="text-center">
+                <div className="text-5xl">📄</div>
+                <p className="text-xs text-gray-600 mt-2">
+                  {item.books?.file_path?.split("/").pop()}
                 </p>
-                <p className={overdue ? "text-red-600 font-bold" : ""}>
-                  Due date: {new Date(item.due_date).toLocaleDateString()}{" "}
-                  {overdue && "(Overdue)"}
-                </p>
+              </div>
+            </div>
 
+            {/* Book Info */}
+            <h3 className="font-bold mt-2">{item.books?.title}</h3>
+            <p>{item.books?.author}</p>
+
+            <p className="text-sm text-gray-600">
+              Borrowed: {new Date(item.borrowed_at).toLocaleDateString()}
+            </p>
+
+            <p className={overdue ? "text-red-600 font-bold text-sm" : "text-sm"}>
+              Access Expiry: {new Date(item.due_date).toLocaleDateString()}{" "}
+              {overdue && "(Expired)"}
+            </p>
+
+              {/* Buttons */}
               <div className="mt-2 flex gap-2">
-                  {/* PREVIEW BUTTON */}
-                  <button
-                    onClick={() => handlePreview(item.books)}
-                    className="px-3 py-1 bg-black text-white rounded"
-                  >
-                    {loadingPreview ? "Loading..." : "Preview"}
-                  </button>
-
-                  {/* RETURN BUTTON */}
-                  <button
-                    onClick={() => handleReturn(item.book_id)}
-                    className="px-3 py-1 bg-red-600 text-white rounded"
-                  >
-                    Return
-                  </button>
-                </div>
-                </div>
+                <button
+                  onClick={() => handlePreviewWithCheck(item.books, overdue)}
+                  disabled={overdue}
+                  className={
+                    overdue
+                      ? "px-3 py-1 bg-gray-300 text-white rounded cursor-not-allowed"
+                      : "px-3 py-1 bg-black text-white rounded"
+                  }
+                >
+                  {loadingPreview ? "Loading..." : "Preview"}
+                </button>
+              </div>
+            </div>
             
             );
           })

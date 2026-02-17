@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import SignOutButton from "../../Logout";
-import BookReader from "../../Reader/BookReader";
+import SignOutButton from "../Logout";
+import BookReader from "../Reader/BookReader";
 
 
 export default function EmployeeDashboard() {

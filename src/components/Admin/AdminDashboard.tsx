@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import SignOutButton from "./Logout";
+import SignOutButton from "../Logout";
 
 export default function AdminDashboard() {
   const [active, setActive] = useState<"users" | "reports">("users");

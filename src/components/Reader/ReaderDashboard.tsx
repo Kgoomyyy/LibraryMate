@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import SignOutButton from "./Logout";
+import SignOutButton from "../Logout";
 import { useSession } from "next-auth/react";
 import {auth} from "@/auth";
-import BookReader from "@/components/BookReader";
+import BookReader from "@/components/Reader/BookReader";
 
 
 export default function ReaderDashboard() {

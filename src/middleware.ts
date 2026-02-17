@@ -1,12 +1,27 @@
 import {NextRequest, NextResponse} from "next/server";
 import { auth } from "@/auth";
 
-export default async function Proxy(request: NextRequest) {
+export default async function Middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   
   const session = await auth();
-  const userRole = session?.user?.role; // Adjust based on your session structure
+  const userRole = session?.user?.role; 
+
+  
+   if (pathname === "/login" && userRole) {
+    switch (userRole) {
+      case "employee":
+        return NextResponse.redirect(new URL("/dashboard/employee", request.url));
+      case "reader":
+        return NextResponse.redirect(new URL("/dashboard/reader", request.url));
+      case "admin":
+        return NextResponse.redirect(new URL("/dashboard/admin", request.url));
+      default:
+        return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
 
   // If user is employee, restrict access to reader and admin routes
   if (userRole === "employee") {
@@ -24,7 +39,6 @@ export default async function Proxy(request: NextRequest) {
 
   return NextResponse.next();
 }
-
 
 
  export const config = {

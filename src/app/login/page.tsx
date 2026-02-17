@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -22,30 +23,13 @@ export default function LoginPage() {
       password,
     });
 
-    if (res?.error) {
-      setError("Invalid email or password");
-    } else if (res?.ok) {
-      // Fetch the session to get the user role
-      const sessionRes = await fetch("/api/auth/session");
-      const sessionData = await sessionRes.json();
-
-      const role = sessionData?.user?.role;
-
-      // Redirect based on role
-      switch (role) {
-        case "employee":
-          router.push("/dashboard/employee");
-          break;
-        case "reader":
-          router.push("/dashboard/reader");
-          break;
-        case "admin":
-          router.push("/dashboard/admin");
-          break;
-        default:
-          router.push("/"); // fallback
-          break;
-      }
+    if (!res?.ok) {
+    
+      toast.error("Invalid email or password");
+      
+    } else {
+      
+      router.push("/login");
     }
   };
 

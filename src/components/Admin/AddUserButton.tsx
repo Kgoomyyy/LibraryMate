@@ -2,15 +2,35 @@
 
 import { useState, useEffect } from "react";
 
+type Role = {
+  id: number;
+  role_name: string;
+};
+
 function AddUserButton({ fetchUsers }: { fetchUsers: () => void }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"user" | "admin">("user");
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [roleId, setRoleId] = useState<number | "">("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // ✅ Fetch roles at the top level, not inside handleAddUser
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const res = await fetch("/api/roles");
+        const data = await res.json();
+        setRoles(data);
+      } catch (err) {
+        console.error("Failed to fetch roles:", err);
+      }
+    };
+    fetchRoles();
+  }, []);
 
   const handleAddUser = async () => {
     setError("");
@@ -22,31 +42,33 @@ function AddUserButton({ fetchUsers }: { fetchUsers: () => void }) {
 
     setLoading(true);
 
-    const role_id = role === "admin" ? 3 : 1; 
+    try {
+      const res = await fetch("/api/admin/add_users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          role_id: roleId,
+        }),
+      });
 
-    const res = await fetch("/api/admin/add_users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        email,
-        password,
-        role_id,
-      }),
-    });
+      const data = await res.json();
 
-    const data = await res.json();
-
-    if (res.ok) {
-      fetchUsers();
-      setShowForm(false);
-      setName("");
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
-      setRole("user");
-    } else {
-      setError(data.error || "Failed to add user");
+      if (res.ok) {
+        fetchUsers();
+        setShowForm(false);
+        setName("");
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+        setRoleId("");
+      } else {
+        setError(data.error || "Failed to add user");
+      }
+    } catch (err) {
+      setError("Something went wrong");
     }
 
     setLoading(false);
@@ -98,12 +120,17 @@ function AddUserButton({ fetchUsers }: { fetchUsers: () => void }) {
           </div>
 
           <select
-            className="border p-2 rounded w-full"
-            value={role}
-            onChange={(e) => setRole(e.target.value as "user" | "admin")}
+            className="border px-4 py-2 rounded"
+            value={roleId}
+            onChange={(e) => setRoleId(Number(e.target.value))}
+            required
           >
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
+            <option value="">Select role</option>
+            {roles.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.role_name}
+              </option>
+            ))}
           </select>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}

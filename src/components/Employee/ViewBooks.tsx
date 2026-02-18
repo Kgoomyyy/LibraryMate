@@ -56,7 +56,7 @@ function ViewBooks() {
             </div>
             <h3 className="font-bold mt-2">{book.title}</h3>
             <p>{book.author}</p>
-            <p>Quantity: {book.quantity}</p>
+            
             <p>Status: {book.status}</p>
             <div className="mt-2 flex gap-2">
               <button

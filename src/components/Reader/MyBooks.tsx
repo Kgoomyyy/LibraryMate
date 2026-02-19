@@ -15,6 +15,18 @@ function MyBooks() {
 
   useEffect(() => {
     if (user_id) fetchMyBooks();
+
+    // Poll periodically to pick up any extension updates (e.g. after user pays to extend)
+    let interval: NodeJS.Timeout | null = null;
+    if (user_id) {
+      interval = setInterval(() => {
+        fetchMyBooks();
+      }, 15000); // refresh every 15s
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [user_id]);
 
   const fetchMyBooks = async () => {
@@ -103,7 +115,14 @@ function MyBooks() {
               {overdue && "(Expired)"}
             </p>
 
-              {/* Buttons */}
+               {/* Permanently show extension date when present */}
+            {item.extended && item.date_extended && (
+              <p className="text-sm text-gray-600">
+                Extension date: {new Date(item.date_extended).toLocaleDateString()}
+              </p>
+            )}
+
+            {/* Buttons */}
               <div className="mt-2 flex gap-2">
                 <button
                   onClick={() => handlePreviewWithCheck(item.books, overdue)}
@@ -118,7 +137,6 @@ function MyBooks() {
                 </button>
               </div>
             </div>
-            
             );
           })
         )}

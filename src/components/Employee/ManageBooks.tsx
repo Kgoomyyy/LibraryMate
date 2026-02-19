@@ -22,7 +22,6 @@ function ManageBooks() {
     const formData = new FormData();
     formData.append("title", title);
     formData.append("author", author);
-    formData.append("quantity", String(quantity));
     formData.append("file", file);
 
     const res = await fetch("/api/books", {
@@ -38,7 +37,6 @@ function ManageBooks() {
       alert("Book added successfully!");
       setTitle("");
       setAuthor("");
-      setQuantity(1);
       setFile(null);
     }
 
@@ -71,15 +69,6 @@ function ManageBooks() {
           required
         />
 
-        <input
-          type="number"
-          placeholder="Quantity"
-          className="w-full border p-2 mb-4 rounded"
-          value={quantity}
-          onChange={(e) => setQuantity(Number(e.target.value))}
-          min={0}
-          required
-        />
 
         <input
           type="file"

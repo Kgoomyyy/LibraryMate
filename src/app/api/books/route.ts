@@ -28,8 +28,7 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase.from("books").insert({
       title,
       author,
-      quantity,
-      status: quantity > 0 ? "available" : "unavailable",
+      status: "available" ,
       file_path: uploadData.path,
     });
 

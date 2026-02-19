@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import SignOutButton from "../Logout";
 import ManageUsers from "./ManageUsers";
-import ViewReports from "./ViewReports";
+import ReportsPage from "./ViewReports";
 import ManageBooks from "../Employee/ManageBooks";
 import ViewBooks from "../Employee/ViewBooks";
+import ViewReports from "./ViewReports";
 
 
 export default function AdminDashboard() {
@@ -60,7 +61,7 @@ export default function AdminDashboard() {
       <section className="flex-1 p-8">
         {active === "users" && <ManageUsers />}
         {active === "books" && <ManageBooks/>}
-        {active === "reports" && <ViewReports />}
+        {active === "reports" && <ViewReports/>}
         {active === "view" && <ViewBooks />}
       </section>
     </main>

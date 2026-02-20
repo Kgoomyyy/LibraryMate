@@ -22,13 +22,11 @@ export default function LoginPage() {
       email,
       password,
     });
-
-    if (!res?.ok) {
     
+    if (res?.error) {
       toast.error("Invalid email or password");
-      
     } else {
-      
+      toast.success("Login successful!");
       router.push("/login");
     }
   };

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("borrowed_books")
-    .select("id,book_id,due_date, borrowed_at,extended,date_extended, books(id, title, author, file_path)")
+    .select("id,book_id,due_date, borrowed_at,extended,date_extended, books(id, title, author, file_path,cover_url)")
     .eq("user_id", user_id)
 ;
 

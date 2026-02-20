@@ -13,6 +13,9 @@ function MyBooks() {
   const { data: session } = useSession();
   const user_id = session?.user?.id;
 
+     const getCover = (path: string) =>
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/IMAGES/${path}`;
+
   useEffect(() => {
     if (user_id) fetchMyBooks();
 
@@ -93,14 +96,11 @@ function MyBooks() {
               
           <div key={item.id} className="bg-white p-4 rounded shadow">
             {/* PDF Preview Box */}
-            <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded">
-              <div className="text-center">
-                <div className="text-5xl">📄</div>
-                <p className="text-xs text-gray-600 mt-2">
-                  {item.books?.file_path?.split("/").pop()}
-                </p>
-              </div>
-            </div>
+             <img
+              src={getCover(item.books?.cover_url)}
+              className="w-full h-52 object-cover rounded mb-3"
+              alt={item.books?.title}
+            />
 
             {/* Book Info */}
             <h3 className="font-bold mt-2">{item.books?.title}</h3>

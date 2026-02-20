@@ -24,5 +24,8 @@ export default function SignOutButton({
     <button onClick={handleSignOut} className={className}>
       Sign Out
     </button>
+    
   );
 }
+
+

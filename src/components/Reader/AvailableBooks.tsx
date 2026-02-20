@@ -9,6 +9,9 @@ function AvailableBooks() {
   const { data: session } = useSession();
   const user_id = session?.user?.id;
 
+    const getCover = (path: string) =>
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/IMAGES/${path}`;
+
   useEffect(() => {
     if (user_id) {
       fetchBooks();
@@ -18,11 +21,11 @@ function AvailableBooks() {
 
   /* ---------------- FETCHING ---------------- */
 
-  const fetchBooks = async () => {
-    const res = await fetch("/api/books?available=true");
-    const data = await res.json();
-    setBooks(Array.isArray(data) ? data : []);
-  };
+const fetchBooks = async () => {
+  const res = await fetch("/api/books");
+  const data = await res.json();
+  setBooks(data.books || []);
+};
 
   const fetchUserBorrowedBooks = async () => {
     try {
@@ -116,14 +119,11 @@ const handleExtend = async (bookId: string) => {
           return (
             <div key={book.id} className="bg-white p-4 rounded shadow">
               {/* Book Preview */}
-              <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded">
-                <div className="text-center">
-                  <div className="text-5xl">📄</div>
-                  <p className="text-xs text-gray-600 mt-2">
-                    {book.file_path?.split("/").pop()}
-                  </p>
-                </div>
-              </div>
+          <img
+              src={getCover(book.cover_url)}
+              className="w-full h-52 object-cover rounded mb-3"
+              alt={book.title}
+            />
 
               {/* Book Info */}
               <h3 className="font-bold mt-2">{book.title}</h3>

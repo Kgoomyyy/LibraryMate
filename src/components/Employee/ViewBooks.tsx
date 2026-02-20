@@ -1,95 +1,89 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import BookReader from "../Reader/BookReader";
+import { useEffect, useState } from "react";
 
-function ViewBooks() {
+export default function ViewBooks() {
   const [books, setBooks] = useState<any[]>([]);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const fetchBooks = async () => {
+    const res = await fetch(`/api/books?search=${search}&page=${page}`);
+    const data = await res.json();
+    setBooks(data.books);
+    setTotalPages(data.totalPages);
+  };
 
   useEffect(() => {
     fetchBooks();
-  }, []);
+  }, [search, page]);
 
-  const fetchBooks = async () => {
-    const res = await fetch("/api/books");
-    const data = await res.json();
-    setBooks(data);
-  };
+  // ---------------- Get correct URLs ----------------
+  const getCover = (path: string) =>
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/IMAGES/${path}`;
 
-  const handlePreview = async (book: any) => {
-    if (!book?.file_path) return;
-    setLoadingPreview(true);
-    try {
-      const res = await fetch(
-        `/api/storage-url?path=${encodeURIComponent(book.file_path)}`
-      );
-      const data = await res.json();
-      if (data?.url) {
-        setPreviewUrl(data.url);
-        setShowPreview(true);
-      } else {
-        alert(data?.error || "Could not load preview");
-      }
-    } catch (err) {
-      alert("Failed to fetch preview");
-    } finally {
-      setLoadingPreview(false);
-    }
-  };
+  const getPDF = (path: string) =>
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/books/${path}`;
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">All Books</h2>
+    <div className="p-8">
+      {/* Search */}
+      <input
+        placeholder="Search books..."
+        className="border p-3 rounded w-full mb-8"
+        value={search}
+        onChange={(e) => {
+          setPage(1);
+          setSearch(e.target.value);
+        }}
+      />
 
+      {/* Books Grid */}
       <div className="grid grid-cols-4 gap-6">
-        {books.length === 0 && (
-          <p className="text-gray-600 col-span-4">No books found.</p>
-        )}
-
         {books.map((book) => (
-          <div key={book.id} className="bg-white p-4 rounded shadow">
-            <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded">
-              <p className="text-sm text-gray-600">{book.file_path?.split("/").pop()}</p>
-            </div>
-            <h3 className="font-bold mt-2">{book.title}</h3>
-            <p>{book.author}</p>
-            
-            <p>Status: {book.status}</p>
-            <div className="mt-2 flex gap-2">
-              <button
-                onClick={() => handlePreview(book)}
-                className="bg-black text-white px-3 py-1 rounded hover:bg-zinc-800 transition"
-              >
-                {loadingPreview ? "Loading..." : "Preview"}
-              </button>
-            </div>
+          <div key={book.id} className="bg-white rounded-xl shadow p-4 flex flex-col">
+            <img
+              src={getCover(book.cover_url)}
+              className="w-full h-52 object-cover rounded mb-3"
+              alt={book.title}
+            />
+            <h3 className="font-bold">{book.title}</h3>
+            <p className="text-sm text-gray-600 mb-3">{book.author}</p>
+
+            <a
+              href={getPDF(book.file_path)}
+              target="_blank"
+              className="mt-auto text-center bg-black text-white py-2 rounded hover:bg-zinc-800 transition"
+            >
+              Read PDF
+            </a>
           </div>
         ))}
       </div>
-      {showPreview && previewUrl && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
-          <div className="bg-white w-full max-w-4xl h-[80vh] rounded overflow-auto p-4 relative">
-            <button
-              onClick={() => {
-                setShowPreview(false);
-                setPreviewUrl(null);
-              }}
-              className="absolute right-4 top-4 bg-red-500 text-white px-3 py-1 rounded"
-            >
-              Close
-            </button>
 
-            <div className="h-full">
-              <BookReader file={previewUrl} />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Pagination */}
+      <div className="flex justify-center gap-4 mt-8">
+        <button
+          disabled={page === 1}
+          onClick={() => setPage(page - 1)}
+          className="border px-4 py-2 rounded"
+        >
+          Prev
+        </button>
+
+        <span className="font-semibold">
+          Page {page} / {totalPages}
+        </span>
+
+        <button
+          disabled={page === totalPages}
+          onClick={() => setPage(page + 1)}
+          className="border px-4 py-2 rounded"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }
-
-export default ViewBooks;

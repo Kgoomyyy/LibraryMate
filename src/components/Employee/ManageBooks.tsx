@@ -1,28 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-function ManageBooks() {
+export default function ManageBooks() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [file, setFile] = useState<File | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
-    if (!file) {
-      alert("Please upload a file");
-      setLoading(false);
+    if (!title || !author || !pdfFile || !coverFile) {
+      alert("All fields are required!");
       return;
     }
+
+    setLoading(true);
 
     const formData = new FormData();
     formData.append("title", title);
     formData.append("author", author);
-    formData.append("file", file);
+    formData.append("file", pdfFile);
+    formData.append("cover", coverFile);
 
     const res = await fetch("/api/books", {
       method: "POST",
@@ -31,57 +32,65 @@ function ManageBooks() {
 
     const data = await res.json();
 
-    if (data.error) {
-      alert(data.error);
-    } else {
+    if (data.error) alert(data.error);
+    else {
       alert("Book added successfully!");
       setTitle("");
       setAuthor("");
-      setFile(null);
+      setPdfFile(null);
+      setCoverFile(null);
     }
 
     setLoading(false);
   };
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Add New Book</h2>
+    <div className="max-w-lg mx-auto mt-10">
+      <h2 className="text-3xl font-bold mb-6">Add New Book</h2>
 
-      <form
-        onSubmit={handleAddBook}
-        className="bg-white p-6 rounded shadow max-w-md"
-      >
+      <form onSubmit={handleAddBook} className="bg-white p-8 rounded-xl shadow space-y-4">
         <input
-          type="text"
-          placeholder="Title"
-          className="w-full border p-2 mb-4 rounded"
+          placeholder="Book Title"
+          className="w-full border p-3 rounded"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
         />
 
         <input
-          type="text"
           placeholder="Author"
-          className="w-full border p-2 mb-4 rounded"
+          className="w-full border p-3 rounded"
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
           required
         />
 
+        <div>
+          <label className="text-sm font-semibold">Upload PDF</label>
+          <input
+            type="file"
+            accept="application/pdf"
+            className="w-full border p-2 rounded mt-1"
+            onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+            required
+          />
+        </div>
 
-        <input
-          type="file"
-          accept="application/pdf,image/*"
-          className="w-full border p-2 mb-4 rounded"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          required
-        />
+        <div>
+          <label className="text-sm font-semibold">Upload Cover Image</label>
+          <input
+            type="file"
+            accept="image/*"
+            className="w-full border p-2 rounded mt-1"
+            onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+            required
+          />
+        </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="bg-black text-white px-4 py-2 rounded hover:bg-zinc-800 transition"
+          className="w-full bg-black text-white py-3 rounded font-semibold"
         >
           {loading ? "Uploading..." : "Add Book"}
         </button>
@@ -89,5 +98,3 @@ function ManageBooks() {
     </div>
   );
 }
-
-export default ManageBooks;

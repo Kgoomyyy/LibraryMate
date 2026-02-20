@@ -100,7 +100,7 @@ export default function ViewReports() {
     <div className="p-6">
       {/* --- Taskbar / Toolbar --- */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Reports Dashboard</h1>
+        <h1 className="text-3xl font-bold text-center">Reports Dashboard</h1>
         <button
           onClick={handlePrint}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { FiBookOpen } from "react-icons/fi";
 import { useSession } from "next-auth/react";
-import {auth} from "@/auth";
 import BookReader from "@/components/Reader/BookReader";
 
 function MyBooks() {
@@ -10,34 +10,28 @@ function MyBooks() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
   const { data: session } = useSession();
   const user_id = session?.user?.id;
 
-     const getCover = (path: string) =>
+  const getCover = (path: string) =>
     `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/IMAGES/${path}`;
 
   useEffect(() => {
     if (user_id) fetchMyBooks();
 
-    // Poll periodically to pick up any extension updates (e.g. after user pays to extend)
     let interval: NodeJS.Timeout | null = null;
     if (user_id) {
-      interval = setInterval(() => {
-        fetchMyBooks();
-      }, 15000); // refresh every 15s
+      interval = setInterval(() => fetchMyBooks(), 15000);
     }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => { if (interval) clearInterval(interval); };
   }, [user_id]);
 
   const fetchMyBooks = async () => {
     try {
       const res = await fetch("/api/borrowed");
       const data = await res.json();
-      if (Array.isArray(data)) setBooks(data);
-      else setBooks([]);
+      setBooks(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
       setBooks([]);
@@ -56,107 +50,213 @@ function MyBooks() {
       } else {
         alert(data?.error || "Could not load preview");
       }
-    } catch (err) {
+    } catch {
       alert("Failed to fetch preview");
     } finally {
       setLoadingPreview(false);
     }
   };
 
-  // New: preview handler that respects overdue flag
   const handlePreviewWithCheck = async (book: any, isOverdueFlag: boolean) => {
-    if (isOverdueFlag) {
-      return alert("This book is overdue — preview is disabled.");
-    }
+    if (isOverdueFlag) return alert("This book is overdue — preview is disabled.");
     return handlePreview(book);
   };
 
-
-
-  const isOverdue = (dueDate: string) => {
-    return new Date() > new Date(dueDate);
-  };
+  const isOverdue = (dueDate: string) => new Date() > new Date(dueDate);
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">My Books</h2>
-
-      <div className="grid grid-cols-4 gap-6">
-        {books.length === 0 ? (
-          <p className="text-gray-600 col-span-4">
-            No borrowed books yet.
-          </p>
-        ) : (
-          books.map((item: any) => {
-            
-            
+    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      {books.length === 0 ? (
+        <p style={{ color: "#999" }}>No borrowed books yet.</p>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+            gap: 24,
+          }}
+        >
+          {books.map((item: any) => {
             const overdue = isOverdue(item.due_date);
-            
+            const btnKey = item.id;
+            const isHovered = hoveredBtn === btnKey;
+
             return (
-              
-          <div key={item.id} className="bg-white p-4 rounded shadow">
-            {/* PDF Preview Box */}
-             <img
-              src={getCover(item.books?.cover_url)}
-              className="w-full h-52 object-cover rounded mb-3"
-              alt={item.books?.title}
-            />
+              <div
+                key={item.id}
+                style={{
+                  backgroundColor: "#fff",
+                  borderRadius: 14,
+                  overflow: "hidden",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+                  border: overdue ? "1px solid #FFCDD2" : "1px solid #F0E6C8",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                {/* Cover */}
+                <div style={{ position: "relative", height: 200, overflow: "hidden" }}>
+                  <img
+                    src={getCover(item.books?.cover_url)}
+                    alt={item.books?.title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  />
+                  {/* Status badge */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 10,
+                      right: 10,
+                      background: overdue ? "rgba(198,40,40,0.85)" : "rgba(0,0,0,0.65)",
+                      color: overdue ? "#fff" : "#FFCA28",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: "3px 10px",
+                      borderRadius: 20,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {overdue ? "Expired" : "Active"}
+                  </div>
+                </div>
 
-            {/* Book Info */}
-            <h3 className="font-bold mt-2">{item.books?.title}</h3>
-            <p>{item.books?.author}</p>
-
-            <p className="text-sm text-gray-600">
-              Borrowed: {new Date(item.borrowed_at).toLocaleDateString()}
-            </p>
-
-            <p className={overdue ? "text-red-600 font-bold text-sm" : "text-sm"}>
-              Access Expiry: {new Date(item.due_date).toLocaleDateString()}{" "}
-              {overdue && "(Expired)"}
-            </p>
-
-               {/* Permanently show extension date when present */}
-            {item.extended && item.date_extended && (
-              <p className="text-sm text-gray-600">
-                Extension date: {new Date(item.date_extended).toLocaleDateString()}
-              </p>
-            )}
-
-            {/* Buttons */}
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={() => handlePreviewWithCheck(item.books, overdue)}
-                  disabled={overdue}
-                  className={
-                    overdue
-                      ? "px-3 py-1 bg-gray-300 text-white rounded cursor-not-allowed"
-                      : "px-3 py-1 bg-black text-white rounded"
-                  }
+                {/* Info */}
+                <div
+                  style={{
+                    padding: "16px 16px 20px",
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                  }}
                 >
-                  {loadingPreview ? "Loading..." : "Preview"}
-                </button>
-              </div>
-            </div>
-            );
-          })
-        )}
-      </div>
+                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#111", lineHeight: 1.3 }}>
+                    {item.books?.title}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 13, color: "#888" }}>{item.books?.author}</p>
 
+                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
+                    <p style={{ margin: 0, fontSize: 12, color: "#aaa" }}>
+                      Borrowed: {new Date(item.borrowed_at).toLocaleDateString()}
+                    </p>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 12,
+                        fontWeight: overdue ? 700 : 400,
+                        color: overdue ? "#c62828" : "#888",
+                      }}
+                    >
+                      Expires: {new Date(item.due_date).toLocaleDateString()}
+                      {overdue && " (Expired)"}
+                    </p>
+
+                    {item.extended && item.date_extended && (
+                      <p style={{ margin: 0, fontSize: 12, color: "#2e7d32", fontWeight: 500 }}>
+                        Extended: {new Date(item.date_extended).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Button */}
+                  <div style={{ marginTop: "auto", paddingTop: 14 }}>
+                    <button
+                      onClick={() => handlePreviewWithCheck(item.books, overdue)}
+                      onMouseEnter={() => !overdue && setHoveredBtn(btnKey)}
+                      onMouseLeave={() => setHoveredBtn(null)}
+                      disabled={overdue}
+                      style={{
+                        width: "100%",
+                        padding: "9px 0",
+                        borderRadius: 8,
+                        border: "none",
+                        background: overdue
+                          ? "#f5f5f5"
+                          : isHovered
+                          ? "#FFB300"
+                          : "linear-gradient(135deg, #FFCA28, #FFB300)",
+                        color: overdue ? "#bbb" : "#111",
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: overdue ? "not-allowed" : "pointer",
+                        transition: "background 0.18s",
+                      }}
+                    >
+                      {loadingPreview ? "Loading..." : overdue ? "Access Expired" : "Read Book"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Fullscreen Preview */}
       {showPreview && previewUrl && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
-          <div className="bg-white w-full max-w-4xl h-[80vh] rounded overflow-auto p-4 relative">
-            <button
-              onClick={() => {
-                setShowPreview(false);
-                setPreviewUrl(null);
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "#1a1a1a",
+            zIndex: 9999,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Minimal top bar — fades into view on hover */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              padding: "12px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              background: "linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)",
+              zIndex: 10,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: 15,
+                color: "rgba(255,255,255,0.7)",
+                letterSpacing: "0.02em",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
               }}
-              className="absolute right-4 top-4 bg-red-500 text-white px-3 py-1 rounded"
             >
-              Close
+              <FiBookOpen /> Reading
+            </span>
+            <button
+              onClick={() => { setShowPreview(false); setPreviewUrl(null); }}
+              style={{
+                padding: "7px 18px",
+                borderRadius: 8,
+                border: "1px solid rgba(255,255,255,0.15)",
+                background: "rgba(255,255,255,0.1)",
+                color: "#fff",
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                backdropFilter: "blur(6px)",
+                transition: "background 0.18s",
+              }}
+            >
+              ✕ Close
             </button>
-            <div className="h-full">
-              <BookReader file={previewUrl} />
-            </div>
+          </div>
+
+          {/* Reader fills everything */}
+          <div style={{ flex: 1, overflow: "auto" }}>
+            <BookReader file={previewUrl} />
           </div>
         </div>
       )}

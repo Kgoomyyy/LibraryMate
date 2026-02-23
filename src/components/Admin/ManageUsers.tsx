@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { FiEdit2, FiTrash2, FiCheck, FiX } from "react-icons/fi";
 import AddUserButton from "./AddUserButton";
-
 
 function ManageUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>({});
-
+  const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -20,179 +20,94 @@ function ManageUsers() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => { fetchUsers(); }, []);
 
-      const handleEdit = (user: any) => {
-      setEditingId(user.id);
-      setEditData(user);
-      };
+  const handleEdit = (user: any) => { setEditingId(user.id); setEditData(user); };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+    try {
+      const res = await fetch("/api/admin/delete-user", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      fetchUsers();
+    } catch (err) { console.error("DELETE FAILED:", err); }
+  };
 
-     const handleDelete = async (id: string) => {
-          const confirmDelete = confirm("Are you sure you want to delete this user?");
-      if (!confirmDelete) return;
+  const handleSave = async () => {
+    try {
+      const res = await fetch("/api/admin/update-user", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(editData) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setEditingId(null);
+      fetchUsers();
+    } catch (err) { console.error("UPDATE FAILED:", err); }
+  };
 
-      try {
-        const res = await fetch("/api/admin/delete-user", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id }),
-        });
+  const inputStyle: React.CSSProperties = {
+    border: "1px solid #FFECB3", borderRadius: 6, padding: "5px 8px", width: "100%",
+    fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#111", background: "#FFFDF5", outline: "none",
+  };
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error);
-        }
-
-        fetchUsers();
-      } catch (err) {
-        console.error("DELETE FAILED:", err);
-      }
-    };
-
-    const handleSave = async () => {
-  try {
-    const res = await fetch("/api/admin/update-user", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editData),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error);
-    }
-
-    setEditingId(null);
-    fetchUsers();
-  } catch (err) {
-    console.error("UPDATE FAILED:", err);
-  }
-};
-
+  const btnStyle = (color: string, hoverColor: string, key: string, textColor = "#fff"): React.CSSProperties => ({
+    display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 6, border: "none",
+    background: hoveredBtn === key ? hoverColor : color, color: textColor,
+    fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "background 0.15s",
+  });
 
   return (
-    <>
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">Manage Users</h1>
-        <AddUserButton fetchUsers={fetchUsers} />
-      </div>
-
-      <div className="bg-white rounded shadow p-6">
+    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #F0E6C8", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", overflow: "hidden" }}>
         {loading ? (
-          <p>Loading users...</p>
+          <div style={{ padding: 40, textAlign: "center", color: "#aaa", fontSize: 14 }}>Loading users...</div>
         ) : (
-          <table className="w-full border">
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr className="bg-gray-100">
-                <th className="p-2 text-start">ID</th>
-                <th className="p-2 text-start">Name</th>
-                <th className="p-2 text-start">Email</th>
-                <th className="p-2 text-start">Role</th>
-                 <th className="p-2 text-center">Actions</th>
-                
-                
+              <tr style={{ background: "#111", color: "rgba(255,255,255,0.6)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                {["ID", "Name", "Email", "Role", "Actions"].map((h, i) => (
+                  <th key={h} style={{ padding: "13px 16px", textAlign: i === 4 ? "center" : "left", fontWeight: 600 }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
-                <tr key={user.id} className="border-t">
-                  
-                  {/* ID */}
-                  <td className="p-2">
+              {users.map((user, idx) => (
+                <tr key={user.id} style={{ background: idx % 2 === 0 ? "#fff" : "#FFFDF5", borderTop: "1px solid #F5EDD8" }}>
+                  <td style={{ padding: "12px 16px", fontSize: 12, color: "#aaa", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {editingId === user.id ? <input value={editData.id} disabled style={{ ...inputStyle, background: "#f5f5f5", color: "#aaa" }} /> : <span title={user.id}>{user.id?.slice(0, 8)}...</span>}
+                  </td>
+                  <td style={{ padding: "12px 16px", fontSize: 14, color: "#111", fontWeight: 500 }}>
+                    {editingId === user.id ? <input value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} style={inputStyle} /> : user.name}
+                  </td>
+                  <td style={{ padding: "12px 16px", fontSize: 13, color: "#666" }}>
+                    {editingId === user.id ? <input value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} style={inputStyle} /> : user.email}
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
                     {editingId === user.id ? (
-                      <input
-                        value={editData.id}
-                        disabled
-                        className="border p-1 rounded w-full bg-gray-100"
-                      />
+                      <input value={editData.role_id} onChange={(e) => setEditData({ ...editData, role_id: e.target.value })} style={inputStyle} />
                     ) : (
-                      user.id
+                      <span style={{ background: "#FFECB3", border: "1px solid #FFCA28", color: "#7a5c00", fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, letterSpacing: "0.04em" }}>
+                        {user.role_id}
+                      </span>
                     )}
                   </td>
-
-                  {/* NAME */}
-                  <td className="p-2">
-                    {editingId === user.id ? (
-                      <input
-                        value={editData.name}
-                        onChange={(e) =>
-                          setEditData({ ...editData, name: e.target.value })
-                        }
-                        className="border p-1 rounded w-full"
-                      />
-                    ) : (
-                      user.name
-                    )}
-                  </td>
-
-                  {/* EMAIL */}
-                  <td className="p-2">
-                    {editingId === user.id ? (
-                      <input
-                        value={editData.email}
-                        onChange={(e) =>
-                          setEditData({ ...editData, email: e.target.value })
-                        }
-                        className="border p-1 rounded w-full"
-                      />
-                    ) : (
-                      user.email
-                    )}
-                  </td>
-
-                  {/* ROLE */}
-                  <td className="p-2">
-                    {editingId === user.id ? (
-                      <input
-                        value={editData.role_id}
-                        onChange={(e) =>
-                          setEditData({ ...editData, role_id: e.target.value })
-                        }
-                        className="border p-1 rounded w-full"
-                      />
-                    ) : (
-                      user.role_id
-                    )}
-                  </td>
-
-                  {/* ACTIONS */}
-                  <td className="p-2">
-                    <div className="flex gap-2 justify-center">
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
                       {editingId === user.id ? (
                         <>
-                          <button
-                            onClick={handleSave}
-                            className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
-                          >
-                            Save
+                          <button onClick={handleSave} onMouseEnter={() => setHoveredBtn(`save-${user.id}`)} onMouseLeave={() => setHoveredBtn(null)} style={btnStyle("#2e7d32", "#1b5e20", `save-${user.id}`)}>
+                            <FiCheck size={12} /> Save
                           </button>
-
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
-                          >
-                            Cancel
+                          <button onClick={() => setEditingId(null)} onMouseEnter={() => setHoveredBtn(`cancel-${user.id}`)} onMouseLeave={() => setHoveredBtn(null)} style={btnStyle("#888", "#555", `cancel-${user.id}`)}>
+                            <FiX size={12} /> Cancel
                           </button>
                         </>
                       ) : (
                         <>
-                          <button
-                            className="px-3 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                            onClick={() => handleEdit(user)}
-                          >
-                            Update
+                          <button onClick={() => handleEdit(user)} onMouseEnter={() => setHoveredBtn(`edit-${user.id}`)} onMouseLeave={() => setHoveredBtn(null)} style={btnStyle("#FFCA28", "#FFB300", `edit-${user.id}`, "#111")}>
+                            <FiEdit2 size={12} /> Update
                           </button>
-
-                          <button
-                            className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
-                            onClick={() => handleDelete(user.id)}
-                          >
-                            Delete
+                          <button onClick={() => handleDelete(user.id)} onMouseEnter={() => setHoveredBtn(`del-${user.id}`)} onMouseLeave={() => setHoveredBtn(null)} style={btnStyle("#c62828", "#b71c1c", `del-${user.id}`)}>
+                            <FiTrash2 size={12} /> Delete
                           </button>
                         </>
                       )}
@@ -200,12 +115,14 @@ function ManageUsers() {
                   </td>
                 </tr>
               ))}
-            </tbody>
 
+              {/* Add User row — rendered as table rows from separate component */}
+              <AddUserButton fetchUsers={fetchUsers} />
+            </tbody>
           </table>
         )}
       </div>
-    </>
+    </div>
   );
 }
 

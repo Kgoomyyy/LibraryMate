@@ -4,16 +4,16 @@ import { useEffect, useState } from "react";
 import { getStats } from "@/lib/reports/getStats/reports";
 import { getBorrowedReport } from "@/lib/reports/getBorrowedReport/reports";
 import { getPaymentsPerBook } from "@/lib/reports/getPaymentsReport/reports";
-
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Printer } from "lucide-react";
+import { FiPrinter } from "react-icons/fi";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#AA336A", "#33AA99", "#FF5555"];
+const COLORS = ["#FFCA28", "#FFB300", "#FF8F00", "#F57F17", "#FFD54F", "#FFC107", "#FFAB00"];
 
 export default function ViewReports() {
   const [stats, setStats] = useState<any>(null);
   const [borrowedData, setBorrowedData] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [hoveredPrint, setHoveredPrint] = useState(false);
 
   useEffect(() => {
     async function fetchReports() {
@@ -23,38 +23,49 @@ export default function ViewReports() {
 
       setStats(statsRes);
 
-      // Borrowed Books
       const borrowedCounts = borrowed.reduce((acc: any, b: any) => {
         const title = b.books?.title || "Unknown";
         acc[title] = (acc[title] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      const borrowedChartData = Object.entries(borrowedCounts).map(([name, value]) => ({
-        name,
-        value,
-      }));
-      setBorrowedData(borrowedChartData);
-
-      // Revenue Per Book
-      const revenueChartData = revenue.map((r: any) => ({
-        name: r.title || "Unknown",
-        value: r.amount || 0,
-      }));
-      setRevenueData(revenueChartData);
+      setBorrowedData(Object.entries(borrowedCounts).map(([name, value]) => ({ name, value })));
+      setRevenueData(revenue.map((r: any) => ({ name: r.title || "Unknown", value: r.amount || 0 })));
     }
-
     fetchReports();
   }, []);
 
-  if (!stats) return <p>Loading reports...</p>;
+  if (!stats) return (
+    <div style={{ padding: 40, textAlign: "center", color: "#aaa", fontFamily: "'DM Sans', sans-serif", fontSize: 14 }}>
+      Loading reports...
+    </div>
+  );
 
   const formatCurrency = (value: number) => `R${value.toLocaleString()}`;
-
-  // Print handler
   const handlePrint = () => window.print();
 
-  // Reusable PieChart Card Component
+  const StatBadge = ({ label, value }: { label: string; value: any }) => (
+    <div
+      style={{
+        background: "#fff",
+        border: "1px solid #F0E6C8",
+        borderRadius: 12,
+        padding: "20px 24px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+      }}
+    >
+      <span style={{ fontSize: 11, fontWeight: 600, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 28, fontWeight: 700, color: "#111", fontFamily: "'Playfair Display', serif" }}>
+        {typeof value === "number" && label.toLowerCase().includes("revenue") ? formatCurrency(value) : value}
+      </span>
+    </div>
+  );
+
   const PieCard = ({
     title,
     data,
@@ -66,12 +77,34 @@ export default function ViewReports() {
     labelFormatter?: (entry: any) => string;
     tooltipFormatter?: (value: any) => string;
   }) => (
-    <div className="bg-white rounded-lg shadow p-4 flex flex-col items-center">
-      <h2 className="text-xl font-semibold mb-2 text-center">{title}</h2>
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 14,
+        border: "1px solid #F0E6C8",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+        padding: "24px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}
+    >
+      <h2
+        style={{
+          margin: "0 0 16px",
+          fontFamily: "'Playfair Display', serif",
+          fontSize: 17,
+          fontWeight: 700,
+          color: "#111",
+          textAlign: "center",
+        }}
+      >
+        {title}
+      </h2>
       {data.length === 0 ? (
-        <p>No data</p>
+        <p style={{ color: "#aaa", fontSize: 13 }}>No data available</p>
       ) : (
-        <div className="w-full h-72">
+        <div style={{ width: "100%", height: 280 }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -80,7 +113,7 @@ export default function ViewReports() {
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                outerRadius={100}
+                outerRadius={95}
                 label={labelFormatter}
               >
                 {data.map((_, index) => (
@@ -97,22 +130,51 @@ export default function ViewReports() {
   );
 
   return (
-    <div className="p-6">
-      {/* --- Taskbar / Toolbar --- */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-center">Reports Dashboard</h1>
+    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+        <div>
+          <p style={{ margin: 0, fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.08em" }}>Overview</p>
+          <h1 style={{ margin: "4px 0 0", fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: "#111" }}>
+            Reports Dashboard
+          </h1>
+        </div>
         <button
           onClick={handlePrint}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          onMouseEnter={() => setHoveredPrint(true)}
+          onMouseLeave={() => setHoveredPrint(false)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "9px 20px",
+            borderRadius: 8,
+            border: "none",
+            background: hoveredPrint ? "#FFB300" : "linear-gradient(135deg, #FFCA28, #FFB300)",
+            color: "#111",
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: "pointer",
+            transition: "background 0.18s",
+          }}
         >
-          <Printer size={20} />
-          Print
+          <FiPrinter size={15} />
+          Print Report
         </button>
       </div>
 
-      {/* --- Charts Container --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Stats Overview */}
+      {/* Stat cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+        <StatBadge label="Total Users" value={stats.users} />
+        <StatBadge label="Total Books" value={stats.books} />
+        <StatBadge label="Borrowed" value={stats.borrowed} />
+        <StatBadge label="Revenue" value={stats.revenue} />
+      </div>
+
+      {/* Charts */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
         <PieCard
           title="Stats Overview"
           data={[
@@ -124,16 +186,12 @@ export default function ViewReports() {
           labelFormatter={(entry) => `${entry.name}: ${entry.value}`}
           tooltipFormatter={(value: any) => value.toString()}
         />
-
-        {/* Borrowed Books */}
         <PieCard
           title="Borrowed Books"
           data={borrowedData}
           labelFormatter={(entry) => `${entry.name}: ${entry.value}`}
           tooltipFormatter={(value: any) => value.toString()}
         />
-
-        {/* Revenue Per Book */}
         <PieCard
           title="Revenue Per Book"
           data={revenueData}

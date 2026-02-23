@@ -22,7 +22,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         // Fetch the user by email
         const { data: user, error: userError } = await supabase
           .from("users")
-          .select("id, email, password, role_id")
+          .select("id, email, password, role_id, name")
           .eq("email", credentials.email)
           .single();
 
@@ -49,6 +49,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           role: roleData.role_name,
+          name: user.name // Use name or fallback to email prefix
         };
       },
     }),
@@ -60,6 +61,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = user.role;
         token.email = user.email;
+        token.name = user.name; // Optional: set name as email prefix
       }
       return token;
     },
@@ -68,6 +70,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       session.user.id = token.id as string;
       session.user.role = token.role as string;
       session.user.email = token.email as string;
+      session.user.name = token.name as string;
       
       return session;
     },

@@ -7,7 +7,7 @@ export default async function Middleware(request: NextRequest) {
   
   const session = await auth();
   const userRole = session?.user?.role; 
-
+ 
   
    if (pathname === "/login" && userRole) {
     switch (userRole) {

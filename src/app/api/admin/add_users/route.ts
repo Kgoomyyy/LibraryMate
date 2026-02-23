@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { supabase } from "@/lib/supabase";
 
 export async function POST(req: Request) {
-  const { name, email, password, role_id } = await req.json();
+  const { name, email, password, role_id} = await req.json();
 
   if (!name || !email || !password || !role_id) {
     return NextResponse.json(

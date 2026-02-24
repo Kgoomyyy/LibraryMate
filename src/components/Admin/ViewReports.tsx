@@ -7,6 +7,8 @@ import { getPaymentsPerBook } from "@/lib/reports/getPaymentsReport/reports";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { FiPrinter } from "react-icons/fi";
 
+
+
 const COLORS = ["#FFCA28", "#FFB300", "#FF8F00", "#F57F17", "#FFD54F", "#FFC107", "#FFAB00"];
 
 export default function ViewReports() {

@@ -1,25 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FiSearch, FiChevronLeft, FiChevronRight, FiBookOpen } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiBookOpen } from "react-icons/fi";
+import Search from "../ui/search";
+import Pagination from "../ui/pagination";
 
 export default function ViewBooks() {
   const [books, setBooks] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hoveredBook, setHoveredBook] = useState<string | null>(null);
-  const [hoveredPrev, setHoveredPrev] = useState(false);
-  const [hoveredNext, setHoveredNext] = useState(false);
-
-  const fetchBooks = async () => {
-    const res = await fetch(`/api/books?search=${search}&page=${page}`);
-    const data = await res.json();
-    setBooks(data.books);
-    setTotalPages(data.totalPages);
-  };
-
-  useEffect(() => { fetchBooks(); }, [search, page]);
+  
 
   const getCover = (path: string) =>
     `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/IMAGES/${path}`;
@@ -27,39 +19,46 @@ export default function ViewBooks() {
   const getPDF = (path: string) =>
     `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/books/${path}`;
 
-  return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+  const fetchBooks = async () => {
+    try {
+      const res = await fetch(`/api/books?search=${searchQuery}&page=${page}`);
+      const data = await res.json();
+      setBooks(data.books || []);
+      setTotalPages(data.totalPages || 1);
+    } catch (err) {
+      console.error("Failed to fetch books:", err);
+      setBooks([]);
+      setTotalPages(1);
+    }
+  };
 
-      {/* Search bar */}
-      <div style={{ position: "relative", marginBottom: 28 }}>
-        <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#FFCA28", fontSize: 16, pointerEvents: "none" }}>
-          <FiSearch />
-        </span>
-        <input
-          placeholder="Search books by title or author..."
-          value={search}
-          onChange={(e) => { setPage(1); setSearch(e.target.value); }}
-          style={{
-            width: "100%",
-            padding: "11px 14px 11px 40px",
-            border: "1px solid #FFECB3",
-            borderRadius: 10,
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 14,
-            color: "#111",
-            background: "#fff",
-            outline: "none",
-            boxSizing: "border-box",
-            boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
-          }}
-        />
-      </div>
+  // Fetch books whenever search query or page changes
+  useEffect(() => {
+    setPage(1); // reset page when search changes
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchBooks();
+  }, [searchQuery, page]);
+
+  return (
+    <div style={{ fontFamily: "'DM Sans', sans-serif", padding: "0 16px" }}>
+      {/* Search */}
+      <Search search={searchQuery} setSearch={setSearchQuery} />
 
       {/* Books grid */}
       {books.length === 0 ? (
-        <p style={{ color: "#aaa", fontSize: 14, textAlign: "center", marginTop: 60 }}>No books found.</p>
+        <p style={{ color: "#aaa", fontSize: 14, textAlign: "center", marginTop: 60 }}>
+          No books found.
+        </p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 24 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gap: 24,
+          }}
+        >
           {books.map((book) => (
             <div
               key={book.id}
@@ -96,22 +95,23 @@ export default function ViewBooks() {
                   onMouseLeave={() => setHoveredBook(null)}
                   style={{
                     marginTop: "auto",
-                    paddingTop: 14,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 6,
                     padding: "9px 0",
                     borderRadius: 8,
-                    background: hoveredBook === book.id ? "#FFB300" : "linear-gradient(135deg, #FFCA28, #FFB300)",
+                    background:
+                      hoveredBook === book.id
+                        ? "#FFB300"
+                        : "linear-gradient(135deg, #FFCA28, #FFB300)",
                     color: "#111",
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: 13,
                     fontWeight: 700,
                     textDecoration: "none",
                     transition: "background 0.18s",
-                    
-                  } as React.CSSProperties}
+                  }}
                 >
                   <FiBookOpen size={13} />
                   Read PDF
@@ -123,71 +123,11 @@ export default function ViewBooks() {
       )}
 
       {/* Pagination */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 36 }}>
-        <button
-          disabled={page === 1}
-          onClick={() => setPage(page - 1)}
-          onMouseEnter={() => setHoveredPrev(true)}
-          onMouseLeave={() => setHoveredPrev(false)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "8px 16px",
-            borderRadius: 8,
-            border: "1px solid #FFECB3",
-            background: page === 1 ? "#f5f5f5" : hoveredPrev ? "#FFECB3" : "#fff",
-            color: page === 1 ? "#ccc" : "#7a5c00",
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: page === 1 ? "not-allowed" : "pointer",
-            transition: "background 0.18s",
-          }}
-        >
-          <FiChevronLeft size={15} /> Prev
-        </button>
-
-        <span
-          style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 13,
-            fontWeight: 600,
-            color: "#888",
-            padding: "8px 16px",
-            background: "#FFECB3",
-            borderRadius: 8,
-            border: "1px solid #FFCA28",
-            
-          } as React.CSSProperties}
-        >
-          Page {page} of {totalPages}
-        </span>
-
-        <button
-          disabled={page === totalPages}
-          onClick={() => setPage(page + 1)}
-          onMouseEnter={() => setHoveredNext(true)}
-          onMouseLeave={() => setHoveredNext(false)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "8px 16px",
-            borderRadius: 8,
-            border: "1px solid #FFECB3",
-            background: page === totalPages ? "#f5f5f5" : hoveredNext ? "#FFECB3" : "#fff",
-            color: page === totalPages ? "#ccc" : "#7a5c00",
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: page === totalPages ? "not-allowed" : "pointer",
-            transition: "background 0.18s",
-          }}
-        >
-          Next <FiChevronRight size={15} />
-        </button>
-      </div>
+    <Pagination
+      page={page}
+      totalPages={totalPages}
+      onPageChange={(newPage) => setPage(newPage)}
+    />
     </div>
   );
 }

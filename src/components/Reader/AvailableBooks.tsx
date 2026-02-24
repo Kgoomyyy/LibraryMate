@@ -2,35 +2,50 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import Search from "../ui/search";
+import Pagination from "../ui/pagination";
 
 function AvailableBooks() {
   const [books, setBooks] = useState<any[]>([]);
   const [borrowedBooks, setBorrowedBooks] = useState<any[]>([]);
   const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
-  const { data: session } = useSession();
-  const user_id = session?.user?.id;
+  const [searchQuery, setSearchQuery] = useState(""); 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [session, setSession] = useState<any>(null);
+  const [user_id, setUserId] = useState<string | null>(null);
 
   const getCover = (path: string) =>
     `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/IMAGES/${path}`;
 
   useEffect(() => {
+    fetchSession();
+
     if (user_id) {
       fetchBooks();
       fetchUserBorrowedBooks();
+      
     }
   }, [user_id]);
 
-  /* ---------------- FETCHING ---------------- */
+
+  const fetchSession = async () => {
+    return fetch("/api/session")
+      .then((res) => res.json())
+      .then((data) => {
+        setSession(data.session || null);
+        setUserId(data.session?.user?.id || null);
+      });
+  };
 
   const fetchBooks = async () => {
-    return fetch("/api/books").then((res) => {
-      return res.json();
-    }).then((data) => {
-      
+    try {
+      const res = await fetch("/api/books");
+      const data = await res.json();
       setBooks(data.books || []);
-    });
-    // const data = await res.json();
-    // setBooks(data.books || []);
+    } catch (err) {
+      console.error("Failed to fetch books", err);
+    }
   };
 
   const fetchUserBorrowedBooks = async () => {
@@ -50,19 +65,30 @@ function AvailableBooks() {
 
   const isExpired = (dueDate: string) => new Date() > new Date(dueDate);
 
+  const filteredBooks = books.filter(
+    (book) =>
+      book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.author.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   /* ---------------- ACTIONS ---------------- */
 
   const handleBorrow = async (bookId: string) => {
     if (!user_id) return alert("Please log in first");
-    const res = await fetch("/api/borrowed", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id, book_id: bookId }),
-    });
-    const data = await res.json();
-    if (data.error) return alert(data.error);
-    alert("Book rented successfully!");
-    fetchUserBorrowedBooks();
+    try {
+      const res = await fetch("/api/borrowed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id, book_id: bookId }),
+      });
+      const data = await res.json();
+      if (data.error) return alert(data.error);
+      alert("Book rented successfully!");
+      fetchUserBorrowedBooks();
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong while borrowing the book.");
+    }
   };
 
   const handleExtend = async (bookId: string) => {
@@ -94,7 +120,10 @@ function AvailableBooks() {
 
   return (
     <div>
-      {books.length === 0 ? (
+      {/* Search */}
+      <Search search={searchQuery} setSearch={setSearchQuery} />
+
+      {filteredBooks.length === 0 ? (
         <p style={{ color: "#999", fontFamily: "'DM Sans', sans-serif" }}>
           No books available.
         </p>
@@ -106,7 +135,7 @@ function AvailableBooks() {
             gap: 24,
           }}
         >
-          {books.map((book: any) => {
+          {filteredBooks.map((book: any) => {
             const borrowed = getBorrowedBook(book.id);
             const expired = borrowed ? isExpired(borrowed.due_date) : false;
             const btnKey = book.id;
@@ -139,7 +168,6 @@ function AvailableBooks() {
                       display: "block",
                     }}
                   />
-                  {/* Borrowed badge overlay */}
                   {borrowed && !expired && (
                     <div
                       style={{
@@ -204,7 +232,6 @@ function AvailableBooks() {
                     {book.author}
                   </p>
 
-                  {/* Extension date */}
                   {borrowed?.extended && borrowed?.date_extended && (
                     <p
                       style={{
@@ -214,12 +241,10 @@ function AvailableBooks() {
                         fontWeight: 500,
                       }}
                     >
-                      Extended until:{" "}
-                      {new Date(borrowed.date_extended).toLocaleDateString()}
+                      Extended until: {new Date(borrowed.date_extended).toLocaleDateString()}
                     </p>
                   )}
 
-                  {/* Action button */}
                   <div style={{ marginTop: "auto", paddingTop: 14 }}>
                     {borrowed ? (
                       expired ? (
@@ -294,8 +319,14 @@ function AvailableBooks() {
               </div>
             );
           })}
+
+          
         </div>
+
+        
       )}
+
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }
